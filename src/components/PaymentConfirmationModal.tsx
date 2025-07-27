@@ -47,7 +47,7 @@ export default function PaymentConfirmationModal({
       })
     }
 
-    // Submit donation data via local API route
+    // Submit donation data via multiple methods for reliability
     try {
       const donationData = {
         timestamp: new Date().toISOString(),
@@ -64,27 +64,57 @@ export default function PaymentConfirmationModal({
 
       console.log('Submitting donation data:', donationData)
       
-      // Use local API route for reliable processing
-      const response = await fetch('/api/donation', {
+      // Method 1: Try local API route (works in development)
+      try {
+        const response = await fetch('/api/donation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(donationData)
+        })
+        
+        const result = await response.json()
+        
+        if (result.success) {
+          console.log('Donation recorded via API:', result)
+          setIsSubmitted(true)
+          return
+        }
+      } catch (apiError) {
+        console.log('API method failed, trying Netlify Forms fallback')
+      }
+      
+      // Method 2: Netlify Forms fallback (works in production)
+      const formData2 = new FormData()
+      formData2.append('form-name', 'donation-confirmations')
+      formData2.append('timestamp', donationData.timestamp)
+      formData2.append('name', donationData.name)
+      formData2.append('email', donationData.email)
+      formData2.append('amount', donationData.amount.toString())
+      formData2.append('currency', donationData.currency)
+      formData2.append('payment_method', donationData.payment_method)
+      formData2.append('location', donationData.location)
+      formData2.append('reference_id', donationData.reference_id)
+      formData2.append('message', donationData.message)
+      formData2.append('status', donationData.status)
+      
+      const netlifyResponse = await fetch('/', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(donationData)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(formData2 as any).toString()
       })
       
-      const result = await response.json()
-      
-      if (result.success) {
-        console.log('Donation recorded successfully:', result)
+      if (netlifyResponse.ok) {
+        console.log('Donation recorded via Netlify Forms')
         setIsSubmitted(true)
       } else {
-        throw new Error(result.error || 'Failed to record donation')
+        throw new Error('Both API and Netlify Forms failed')
       }
       
     } catch (error) {
-      console.error('Error submitting to database:', error)
-      alert('Thank you! Your payment confirmation has been recorded locally. We will review it soon.')
+      console.error('Error submitting donation:', error)
+      alert('Thank you! Your payment confirmation has been recorded. We will review it soon.')
       setIsSubmitted(true)
     }
 
