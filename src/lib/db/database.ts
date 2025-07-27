@@ -1,10 +1,5 @@
-import { promises as fs } from 'fs'
-import path from 'path'
+import { getStore } from '@netlify/blobs'
 import crypto from 'crypto'
-
-const DB_DIR = path.join(process.cwd(), 'data')
-const DONATIONS_FILE = path.join(DB_DIR, 'donations.json')
-const USERS_FILE = path.join(DB_DIR, 'users.json')
 
 export interface Donation {
   id: string
@@ -31,26 +26,28 @@ export interface User {
 }
 
 class Database {
+  private donationsStore = getStore('donations')
+  private usersStore = getStore('users')
   private initialized = false
 
-  private async ensureDataDir() {
+  private async ensureInitialized() {
     if (this.initialized) return
     
+    // Initialize users if not exists
     try {
-      await fs.access(DB_DIR)
-    } catch {
-      await fs.mkdir(DB_DIR, { recursive: true })
-    }
-    
-    try {
-      await fs.access(DONATIONS_FILE)
-    } catch {
-      await fs.writeFile(DONATIONS_FILE, JSON.stringify([]))
-    }
-    
-    try {
-      await fs.access(USERS_FILE)
-    } catch {
+      const users = await this.usersStore.get('users.json', { type: 'json' })
+      if (!users) {
+        const defaultAdmin = {
+          id: crypto.randomUUID(),
+          username: 'admin',
+          passwordHash: this.hashPassword('admin123'),
+          role: 'admin',
+          createdAt: new Date().toISOString()
+        }
+        await this.usersStore.set('users.json', [defaultAdmin])
+      }
+    } catch (error) {
+      console.log('Initializing users store...')
       const defaultAdmin = {
         id: crypto.randomUUID(),
         username: 'admin',
@@ -58,7 +55,18 @@ class Database {
         role: 'admin',
         createdAt: new Date().toISOString()
       }
-      await fs.writeFile(USERS_FILE, JSON.stringify([defaultAdmin]))
+      await this.usersStore.set('users.json', [defaultAdmin])
+    }
+
+    // Initialize donations if not exists
+    try {
+      const donations = await this.donationsStore.get('donations.json', { type: 'json' })
+      if (!donations) {
+        await this.donationsStore.set('donations.json', [])
+      }
+    } catch (error) {
+      console.log('Initializing donations store...')
+      await this.donationsStore.set('donations.json', [])
     }
     
     this.initialized = true
@@ -69,9 +77,14 @@ class Database {
   }
 
   async getAllDonations(): Promise<Donation[]> {
-    await this.ensureDataDir()
-    const data = await fs.readFile(DONATIONS_FILE, 'utf-8')
-    return JSON.parse(data)
+    await this.ensureInitialized()
+    try {
+      const donations = await this.donationsStore.get('donations.json', { type: 'json' }) as Donation[]
+      return donations || []
+    } catch (error) {
+      console.error('Error getting donations:', error)
+      return []
+    }
   }
 
   async getDonationById(id: string): Promise<Donation | null> {
@@ -80,16 +93,20 @@ class Database {
   }
 
   async createDonation(donation: Omit<Donation, 'id' | 'createdAt' | 'updatedAt'>): Promise<Donation> {
-    await this.ensureDataDir()
+    await this.ensureInitialized()
     const donations = await this.getAllDonations()
+    
     const newDonation: Donation = {
       ...donation,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
+    
     donations.push(newDonation)
-    await fs.writeFile(DONATIONS_FILE, JSON.stringify(donations, null, 2))
+    await this.donationsStore.set('donations.json', donations)
+    
+    console.log('✅ Donation saved to Netlify Blobs:', newDonation.id)
     return newDonation
   }
 
@@ -107,7 +124,7 @@ class Database {
       updatedAt: new Date().toISOString()
     }
     
-    await fs.writeFile(DONATIONS_FILE, JSON.stringify(donations, null, 2))
+    await this.donationsStore.set('donations.json', donations)
     return donations[index]
   }
 
@@ -117,15 +134,19 @@ class Database {
     
     if (filtered.length === donations.length) return false
     
-    await fs.writeFile(DONATIONS_FILE, JSON.stringify(filtered, null, 2))
+    await this.donationsStore.set('donations.json', filtered)
     return true
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    await this.ensureDataDir()
-    const data = await fs.readFile(USERS_FILE, 'utf-8')
-    const users = JSON.parse(data)
-    return users.find((u: User) => u.username === username) || null
+    await this.ensureInitialized()
+    try {
+      const users = await this.usersStore.get('users.json', { type: 'json' }) as User[]
+      return users?.find((u: User) => u.username === username) || null
+    } catch (error) {
+      console.error('Error getting user:', error)
+      return null
+    }
   }
 
   async validateUser(username: string, password: string): Promise<User | null> {
@@ -139,16 +160,21 @@ class Database {
   }
 
   async updateUserPassword(username: string, newPassword: string): Promise<boolean> {
-    await this.ensureDataDir()
-    const data = await fs.readFile(USERS_FILE, 'utf-8')
-    const users = JSON.parse(data)
-    const index = users.findIndex((u: User) => u.username === username)
-    
-    if (index === -1) return false
-    
-    users[index].passwordHash = this.hashPassword(newPassword)
-    await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2))
-    return true
+    await this.ensureInitialized()
+    try {
+      const users = await this.usersStore.get('users.json', { type: 'json' }) as User[]
+      if (!users) return false
+      
+      const index = users.findIndex((u: User) => u.username === username)
+      if (index === -1) return false
+      
+      users[index].passwordHash = this.hashPassword(newPassword)
+      await this.usersStore.set('users.json', users)
+      return true
+    } catch (error) {
+      console.error('Error updating user password:', error)
+      return false
+    }
   }
 }
 

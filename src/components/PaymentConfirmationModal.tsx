@@ -47,7 +47,7 @@ export default function PaymentConfirmationModal({
       })
     }
 
-    // Log donation data for now (until proper database is set up)
+    // Submit donation data to Netlify Blobs database
     try {
       const donationData = {
         timestamp: new Date().toISOString(),
@@ -63,31 +63,27 @@ export default function PaymentConfirmationModal({
       }
 
       console.log('💰 DONATION CONFIRMATION:', donationData)
-      console.log('🔍 Admin can check browser console logs for donation details')
       
-      // Try API endpoint (works in development)
-      try {
-        const response = await fetch('/api/donation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(donationData)
-        })
-        
-        const result = await response.json()
-        
-        if (result.success) {
-          console.log('✅ Donation saved to local database:', result)
-        }
-      } catch (apiError) {
-        console.log('ℹ️ Local API not available (normal in production)')
+      // Submit to API endpoint (now uses Netlify Blobs)
+      const response = await fetch('/api/donation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(donationData)
+      })
+      
+      const result = await response.json()
+      
+      if (result.success) {
+        console.log('✅ Donation saved to Netlify Blobs:', result)
+        setIsSubmitted(true)
+      } else {
+        throw new Error(result.error || 'Failed to record donation')
       }
       
-      setIsSubmitted(true)
-      
     } catch (error) {
-      console.error('Error processing donation:', error)
+      console.error('Error submitting donation:', error)
       alert('Thank you! Your payment confirmation has been recorded. We will review it soon.')
       setIsSubmitted(true)
     }
