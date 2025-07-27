@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { trackDonationClick } from '@/utils/analytics'
 
 export default function HeroSection() {
   return (
@@ -29,7 +30,11 @@ export default function HeroSection() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Link href="/donate" className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg font-semibold transition-colors text-lg">
+            <Link 
+              href="/donate" 
+              onClick={() => trackDonationClick({ location: 'homepage', source: 'hero_sponsor' })}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-4 rounded-lg font-semibold transition-colors text-lg"
+            >
               Sponsor a Child
             </Link>
             <Link href="/donate" className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold transition-colors text-lg">

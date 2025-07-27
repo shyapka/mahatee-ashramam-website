@@ -53,8 +53,8 @@ export default function ContactPage() {
       icon: '📧',
       title: 'Email',
       details: [
-        'contact@mahatiashramam.org',
-        'info@mahatiashramam.org'
+        'contact@mahateeashramam.org',
+        'info@mahateeashramam.org'
       ]
     },
     {

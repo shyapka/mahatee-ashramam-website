@@ -61,7 +61,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-primary-500" />
-                <p className="text-gray-300 text-sm">contact@mahatiashramam.org</p>
+                <p className="text-gray-300 text-sm">contact@mahateeashramam.org</p>
               </div>
             </div>
           </div>

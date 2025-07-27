@@ -1,226 +1,389 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, LogOut, RefreshCw, Download } from 'lucide-react'
+
+interface Donation {
+  id: string
+  timestamp: string
+  name: string
+  email?: string
+  amount: number
+  currency: 'USD' | 'INR'
+  paymentMethod: string
+  location: 'us' | 'india'
+  referenceId?: string
+  message?: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalDonations: 0,
-    monthlyDonations: 0,
-    activeVolunteers: 0,
-    totalChildren: 0,
-    pendingMessages: 0,
-    galleryImages: 0
-  })
+  const router = useRouter()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [showPassword, setShowPassword] = useState(false)
+  const [loginForm, setLoginForm] = useState({ username: '', password: '' })
+  const [donations, setDonations] = useState<Donation[]>([])
+  const [filteredDonations, setFilteredDonations] = useState<Donation[]>([])
+  const [filter, setFilter] = useState({ location: 'all', status: 'all', search: '' })
+  const [token, setToken] = useState<string | null>(null)
 
   useEffect(() => {
-    // Simulate loading data
-    setStats({
-      totalDonations: 2450000,
-      monthlyDonations: 125000,
-      activeVolunteers: 45,
-      totalChildren: 103,
-      pendingMessages: 12,
-      galleryImages: 287
-    })
+    const savedToken = localStorage.getItem('adminToken')
+    if (savedToken) {
+      setToken(savedToken)
+      setIsLoggedIn(true)
+      fetchDonations(savedToken)
+    }
+    setIsLoading(false)
   }, [])
 
-  const recentDonations = [
-    { id: 1, name: 'Rajesh Kumar', amount: 5000, date: '2024-01-15', type: 'Monthly' },
-    { id: 2, name: 'Priya Sharma', amount: 1500, date: '2024-01-15', type: 'Child Sponsorship' },
-    { id: 3, name: 'Anonymous', amount: 10000, date: '2024-01-14', type: 'One-time' },
-    { id: 4, name: 'Tech Corp Ltd', amount: 25000, date: '2024-01-14', type: 'Corporate' },
-    { id: 5, name: 'Sunita Devi', amount: 2000, date: '2024-01-13', type: 'Monthly' },
-  ]
+  useEffect(() => {
+    filterDonations()
+  }, [donations, filter])
 
-  const recentMessages = [
-    { id: 1, name: 'John Doe', subject: 'Volunteer Inquiry', date: '2024-01-15', priority: 'medium' },
-    { id: 2, name: 'Sarah Wilson', subject: 'Partnership Proposal', date: '2024-01-15', priority: 'high' },
-    { id: 3, name: 'Mike Johnson', subject: 'Donation Question', date: '2024-01-14', priority: 'low' },
-    { id: 4, name: 'Lisa Chen', subject: 'Media Interview Request', date: '2024-01-14', priority: 'high' },
-  ]
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
 
-  const upcomingEvents = [
-    { id: 1, title: 'Annual Sports Day', date: '2024-01-20', type: 'Event' },
-    { id: 2, title: 'Volunteer Orientation', date: '2024-01-22', type: 'Training' },
-    { id: 3, title: 'Medical Checkup Camp', date: '2024-01-25', type: 'Health' },
-    { id: 4, title: 'Parent-Teacher Meeting', date: '2024-01-28', type: 'Education' },
-  ]
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loginForm)
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        localStorage.setItem('adminToken', data.token)
+        setToken(data.token)
+        setIsLoggedIn(true)
+        fetchDonations(data.token)
+      } else {
+        alert(data.error || 'Login failed')
+      }
+    } catch (error) {
+      alert('Login error: ' + error)
+    }
+
+    setIsLoading(false)
+  }
+
+  const fetchDonations = async (authToken: string) => {
+    try {
+      const response = await fetch('/api/donation', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setDonations(data.data.sort((a: Donation, b: Donation) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ))
+      } else if (response.status === 401) {
+        handleLogout()
+      }
+    } catch (error) {
+      console.error('Error fetching donations:', error)
+    }
+  }
+
+  const filterDonations = () => {
+    let filtered = [...donations]
+
+    if (filter.location !== 'all') {
+      filtered = filtered.filter(d => d.location === filter.location)
+    }
+
+    if (filter.status !== 'all') {
+      filtered = filtered.filter(d => d.status === filter.status)
+    }
+
+    if (filter.search) {
+      const search = filter.search.toLowerCase()
+      filtered = filtered.filter(d => 
+        d.name.toLowerCase().includes(search) ||
+        d.email?.toLowerCase().includes(search) ||
+        d.referenceId?.toLowerCase().includes(search)
+      )
+    }
+
+    setFilteredDonations(filtered)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken')
+    setToken(null)
+    setIsLoggedIn(false)
+    setDonations([])
+    router.push('/admin')
+  }
+
+  const exportToCSV = () => {
+    const headers = ['Date', 'Name', 'Email', 'Amount', 'Currency', 'Payment Method', 'Location', 'Reference ID', 'Status', 'Message']
+    const rows = filteredDonations.map(d => [
+      new Date(d.createdAt).toLocaleString(),
+      d.name,
+      d.email || '',
+      d.amount,
+      d.currency,
+      d.paymentMethod,
+      d.location === 'india' ? 'India' : 'USA',
+      d.referenceId || '',
+      d.status,
+      d.message || ''
+    ])
+
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `donations_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  const totalAmount = {
+    USD: filteredDonations.filter(d => d.currency === 'USD').reduce((sum, d) => sum + d.amount, 0),
+    INR: filteredDonations.filter(d => d.currency === 'INR').reduce((sum, d) => sum + d.amount, 0)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-8">
+          <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Admin Login</h1>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                type="text"
+                id="username"
+                required
+                value={loginForm.username}
+                onChange={(e) => setLoginForm(prev => ({ ...prev, username: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  required
+                  value={loginForm.password}
+                  onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
+          </form>
+
+          <p className="mt-4 text-sm text-gray-600 text-center">
+            Default credentials: admin / admin123
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome to Mahatee Ashramam Admin Panel</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">💰</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Donations</p>
-              <p className="text-2xl font-bold text-gray-900">₹{stats.totalDonations.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">📅</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">This Month</p>
-              <p className="text-2xl font-bold text-gray-900">₹{stats.monthlyDonations.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">👥</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Volunteers</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.activeVolunteers}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">👶</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Children</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.totalChildren}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">💬</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending Messages</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.pendingMessages}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center">
-            <div className="text-3xl mr-4">📸</div>
-            <div>
-              <p className="text-sm font-medium text-gray-600">Gallery Images</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.galleryImages}</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <h1 className="text-2xl font-bold text-gray-900">Donation Dashboard</h1>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => fetchDonations(token!)}
+                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </button>
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-colors"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors"
+              >
+                <LogOut className="h-4 w-4" />
+                Logout
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Charts and Tables Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Donations */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Donations</h2>
-            <button className="text-orange-500 hover:text-orange-600 text-sm font-medium">
-              View All
-            </button>
+      {/* Filters and Stats */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+              <select
+                value={filter.location}
+                onChange={(e) => setFilter(prev => ({ ...prev, location: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">All Locations</option>
+                <option value="india">India</option>
+                <option value="us">USA</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <select
+                value={filter.status}
+                onChange={(e) => setFilter(prev => ({ ...prev, status: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="all">All Status</option>
+                <option value="New">New</option>
+                <option value="Verified">Verified</option>
+                <option value="Processed">Processed</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+              <input
+                type="text"
+                placeholder="Search by name, email, or reference..."
+                value={filter.search}
+                onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
           </div>
-          <div className="space-y-3">
-            {recentDonations.map((donation) => (
-              <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{donation.name}</p>
-                  <p className="text-sm text-gray-600">{donation.date} • {donation.type}</p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-green-600">₹{donation.amount.toLocaleString()}</p>
-                </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-lg p-4">
+              <p className="text-sm text-blue-600 font-medium">Total Donations</p>
+              <p className="text-2xl font-bold text-blue-900">{filteredDonations.length}</p>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4">
+              <p className="text-sm text-green-600 font-medium">USD Total</p>
+              <p className="text-2xl font-bold text-green-900">${totalAmount.USD.toFixed(2)}</p>
+            </div>
+            <div className="bg-orange-50 rounded-lg p-4">
+              <p className="text-sm text-orange-600 font-medium">INR Total</p>
+              <p className="text-2xl font-bold text-orange-900">₹{totalAmount.INR.toFixed(2)}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Donations Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Donor</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Method</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Message</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredDonations.map((donation) => (
+                  <tr key={donation.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {new Date(donation.createdAt).toLocaleString()}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">{donation.name}</div>
+                      {donation.email && (
+                        <div className="text-sm text-gray-500">{donation.email}</div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">
+                        {donation.currency} {donation.amount}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {donation.location === 'india' ? 'India' : 'USA'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {donation.paymentMethod}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {donation.referenceId || '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                        donation.status === 'New' ? 'bg-yellow-100 text-yellow-800' :
+                        donation.status === 'Verified' ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {donation.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={donation.message}>
+                      {donation.message || '-'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {filteredDonations.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-500">No donations found</p>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-
-        {/* Recent Messages */}
-        <div className="bg-white p-6 rounded-lg shadow">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2>
-            <button className="text-orange-500 hover:text-orange-600 text-sm font-medium">
-              View All
-            </button>
-          </div>
-          <div className="space-y-3">
-            {recentMessages.map((message) => (
-              <div key={message.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">{message.name}</p>
-                  <p className="text-sm text-gray-600">{message.subject}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                    message.priority === 'high' ? 'bg-red-100 text-red-800' :
-                    message.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-green-100 text-green-800'
-                  }`}>
-                    {message.priority}
-                  </span>
-                  <p className="text-xs text-gray-500 mt-1">{message.date}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Upcoming Events */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Upcoming Events</h2>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Add Event
-          </button>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {upcomingEvents.map((event) => (
-            <div key={event.id} className="p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                  event.type === 'Event' ? 'bg-blue-100 text-blue-800' :
-                  event.type === 'Training' ? 'bg-green-100 text-green-800' :
-                  event.type === 'Health' ? 'bg-red-100 text-red-800' :
-                  'bg-purple-100 text-purple-800'
-                }`}>
-                  {event.type}
-                </span>
-              </div>
-              <h3 className="font-medium text-gray-900 mb-1">{event.title}</h3>
-              <p className="text-sm text-gray-600">{event.date}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg text-center transition-colors">
-            <div className="text-2xl mb-2">➕</div>
-            <p className="text-sm font-medium text-blue-800">Add Child</p>
-          </button>
-          <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg text-center transition-colors">
-            <div className="text-2xl mb-2">📊</div>
-            <p className="text-sm font-medium text-green-800">Generate Report</p>
-          </button>
-          <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg text-center transition-colors">
-            <div className="text-2xl mb-2">📷</div>
-            <p className="text-sm font-medium text-purple-800">Upload Photos</p>
-          </button>
-          <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg text-center transition-colors">
-            <div className="text-2xl mb-2">📝</div>
-            <p className="text-sm font-medium text-orange-800">Update Content</p>
-          </button>
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { trackDonationClick } from '@/utils/analytics'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -43,7 +44,11 @@ export default function Navbar() {
                 {item.label}
               </Link>
             ))}
-            <Link href="/donate" className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+            <Link 
+              href="/donate" 
+              onClick={() => trackDonationClick({ location: 'homepage', source: 'navbar' })}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
               Donate Now
             </Link>
           </div>

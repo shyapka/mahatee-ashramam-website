@@ -1,84 +1,114 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { RefreshCw, Download } from 'lucide-react'
+
+interface Donation {
+  id: string
+  timestamp: string
+  name: string
+  email?: string
+  amount: number
+  currency: 'USD' | 'INR'
+  paymentMethod: string
+  location: 'us' | 'india'
+  referenceId?: string
+  message?: string
+  status: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function DonationsPage() {
   const [filter, setFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [donations, setDonations] = useState<Donation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [token, setToken] = useState<string | null>(null)
 
-  // Mock donations data
-  const donations = [
-    {
-      id: 1,
-      name: 'Rajesh Kumar',
-      email: 'rajesh@email.com',
-      amount: 5000,
-      type: 'Monthly',
-      method: 'UPI',
-      date: '2024-01-15',
-      status: 'Completed',
-      transactionId: 'TXN123456789'
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      email: 'priya@email.com',
-      amount: 1500,
-      type: 'Child Sponsorship',
-      method: 'Credit Card',
-      date: '2024-01-15',
-      status: 'Completed',
-      transactionId: 'TXN123456790'
-    },
-    {
-      id: 3,
-      name: 'Anonymous Donor',
-      email: 'anonymous@email.com',
-      amount: 10000,
-      type: 'One-time',
-      method: 'Bank Transfer',
-      date: '2024-01-14',
-      status: 'Pending',
-      transactionId: 'TXN123456791'
-    },
-    {
-      id: 4,
-      name: 'Tech Corp Ltd',
-      email: 'csr@techcorp.com',
-      amount: 25000,
-      type: 'Corporate CSR',
-      method: 'NEFT',
-      date: '2024-01-14',
-      status: 'Completed',
-      transactionId: 'TXN123456792'
-    },
-    {
-      id: 5,
-      name: 'Sunita Devi',
-      email: 'sunita@email.com',
-      amount: 2000,
-      type: 'Monthly',
-      method: 'UPI',
-      date: '2024-01-13',
-      status: 'Failed',
-      transactionId: 'TXN123456793'
+  useEffect(() => {
+    const savedToken = localStorage.getItem('adminToken')
+    if (savedToken) {
+      setToken(savedToken)
+      fetchDonations(savedToken)
+    } else {
+      setIsLoading(false)
     }
-  ]
+  }, [])
+
+  const fetchDonations = async (authToken: string) => {
+    try {
+      const response = await fetch('/api/donation', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setDonations(data.data.sort((a: Donation, b: Donation) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        ))
+      } else if (response.status === 401) {
+        localStorage.removeItem('adminToken')
+        window.location.reload()
+      }
+    } catch (error) {
+      console.error('Error fetching donations:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
 
   const filteredDonations = donations.filter(donation => {
-    const matchesFilter = filter === 'all' || donation.status.toLowerCase() === filter
+    const matchesFilter = filter === 'all' || donation.status.toLowerCase() === filter.toLowerCase()
     const matchesSearch = donation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         donation.email.toLowerCase().includes(searchTerm.toLowerCase())
+                         (donation.email?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+                         (donation.referenceId?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
     return matchesFilter && matchesSearch
   })
 
-  const totalAmount = donations
-    .filter(d => d.status === 'Completed')
-    .reduce((sum, d) => sum + d.amount, 0)
+  const totalAmount = {
+    USD: donations.filter(d => d.status === 'Verified' && d.currency === 'USD').reduce((sum, d) => sum + d.amount, 0),
+    INR: donations.filter(d => d.status === 'Verified' && d.currency === 'INR').reduce((sum, d) => sum + d.amount, 0)
+  }
 
-  const monthlyAmount = donations
-    .filter(d => d.status === 'Completed' && d.type === 'Monthly')
-    .reduce((sum, d) => sum + d.amount, 0)
+  const exportToCSV = () => {
+    const headers = ['Date', 'Name', 'Email', 'Amount', 'Currency', 'Payment Method', 'Location', 'Reference ID', 'Status', 'Message']
+    const rows = filteredDonations.map(d => [
+      new Date(d.createdAt).toLocaleString(),
+      d.name,
+      d.email || '',
+      d.amount,
+      d.currency,
+      d.paymentMethod,
+      d.location === 'india' ? 'India' : 'USA',
+      d.referenceId || '',
+      d.status,
+      d.message || ''
+    ])
+
+    const csv = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `donations_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <div className="text-center">
+          <RefreshCw className="h-8 w-8 animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-gray-600">Loading donations...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -88,9 +118,22 @@ export default function DonationsPage() {
           <h1 className="text-3xl font-bold text-gray-900">Donations</h1>
           <p className="text-gray-600">Manage and track all donations</p>
         </div>
-        <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors">
-          Export Report
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => fetchDonations(token!)}
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:text-gray-900"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </button>
+          <button 
+            onClick={exportToCSV}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Export Report
+          </button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -99,8 +142,8 @@ export default function DonationsPage() {
           <div className="flex items-center">
             <div className="text-3xl mr-4">💰</div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Collected</p>
-              <p className="text-2xl font-bold text-green-600">₹{totalAmount.toLocaleString()}</p>
+              <p className="text-sm font-medium text-gray-600">USD Total</p>
+              <p className="text-2xl font-bold text-green-600">${totalAmount.USD.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -109,8 +152,8 @@ export default function DonationsPage() {
           <div className="flex items-center">
             <div className="text-3xl mr-4">🔄</div>
             <div>
-              <p className="text-sm font-medium text-gray-600">Monthly Recurring</p>
-              <p className="text-2xl font-bold text-blue-600">₹{monthlyAmount.toLocaleString()}</p>
+              <p className="text-sm font-medium text-gray-600">INR Total</p>
+              <p className="text-2xl font-bold text-blue-600">₹{totalAmount.INR.toFixed(2)}</p>
             </div>
           </div>
         </div>
@@ -151,7 +194,7 @@ export default function DonationsPage() {
             />
           </div>
           <div className="flex gap-2">
-            {['all', 'completed', 'pending', 'failed'].map((status) => (
+            {['all', 'new', 'verified', 'processed'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -181,10 +224,10 @@ export default function DonationsPage() {
                   Amount
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Type
+                  Method
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Method
+                  Reference
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date
@@ -203,27 +246,33 @@ export default function DonationsPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <p className="font-medium text-gray-900">{donation.name}</p>
-                      <p className="text-sm text-gray-500">{donation.email}</p>
+                      {donation.email && (
+                        <p className="text-sm text-gray-500">{donation.email}</p>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="font-bold text-green-600">₹{donation.amount.toLocaleString()}</p>
+                    <div>
+                      <p className="font-bold text-green-600">{donation.currency} {donation.amount.toLocaleString()}</p>
+                      <p className="text-sm text-gray-500">{donation.location === 'india' ? 'India' : 'USA'}</p>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
-                      {donation.type}
+                      {donation.paymentMethod}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {donation.method}
+                    {donation.referenceId || '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {donation.date}
+                    {new Date(donation.createdAt).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full ${
-                      donation.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                      donation.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
+                      donation.status === 'New' ? 'bg-yellow-100 text-yellow-800' :
+                      donation.status === 'Verified' ? 'bg-blue-100 text-blue-800' :
+                      donation.status === 'Processed' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
                     }`}>
                       {donation.status}
@@ -237,7 +286,7 @@ export default function DonationsPage() {
                       <button className="text-blue-600 hover:text-blue-900">
                         Receipt
                       </button>
-                      {donation.status === 'Pending' && (
+                      {donation.status === 'New' && (
                         <button className="text-green-600 hover:text-green-900">
                           Verify
                         </button>

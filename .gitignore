@@ -38,3 +38,6 @@ next-env.d.ts
 
 # OS Files
 Thumbs.db
+
+# Database
+/data/
