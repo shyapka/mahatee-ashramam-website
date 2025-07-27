@@ -64,7 +64,7 @@ export default function PaymentConfirmationModal({
 
       console.log('💰 DONATION CONFIRMATION:', donationData)
       
-      // Submit to API endpoint (now uses Netlify Blobs)
+      // Submit to API endpoint (now uses Supabase)
       const response = await fetch('/api/donation', {
         method: 'POST',
         headers: {
@@ -76,7 +76,7 @@ export default function PaymentConfirmationModal({
       const result = await response.json()
       
       if (result.success) {
-        console.log('✅ Donation saved to Netlify Blobs:', result)
+        console.log('✅ Donation saved to Supabase:', result)
         setIsSubmitted(true)
       } else {
         throw new Error(result.error || 'Failed to record donation')

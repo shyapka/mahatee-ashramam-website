@@ -1,4 +1,4 @@
-import { getStore } from '@netlify/blobs'
+import { supabase } from '@/lib/supabase'
 import crypto from 'crypto'
 
 export interface Donation {
@@ -26,125 +26,205 @@ export interface User {
 }
 
 class Database {
-  private donationsStore = getStore('donations')
-  private usersStore = getStore('users')
-  private initialized = false
-
-  private async ensureInitialized() {
-    if (this.initialized) return
-    
-    // Initialize users if not exists
-    try {
-      const users = await this.usersStore.get('users.json', { type: 'json' })
-      if (!users) {
-        const defaultAdmin = {
-          id: crypto.randomUUID(),
-          username: 'admin',
-          passwordHash: this.hashPassword('admin123'),
-          role: 'admin',
-          createdAt: new Date().toISOString()
-        }
-        await this.usersStore.set('users.json', [defaultAdmin])
-      }
-    } catch (error) {
-      console.log('Initializing users store...')
-      const defaultAdmin = {
-        id: crypto.randomUUID(),
-        username: 'admin',
-        passwordHash: this.hashPassword('admin123'),
-        role: 'admin',
-        createdAt: new Date().toISOString()
-      }
-      await this.usersStore.set('users.json', [defaultAdmin])
-    }
-
-    // Initialize donations if not exists
-    try {
-      const donations = await this.donationsStore.get('donations.json', { type: 'json' })
-      if (!donations) {
-        await this.donationsStore.set('donations.json', [])
-      }
-    } catch (error) {
-      console.log('Initializing donations store...')
-      await this.donationsStore.set('donations.json', [])
-    }
-    
-    this.initialized = true
-  }
-
   private hashPassword(password: string): string {
     return crypto.createHash('sha256').update(password).digest('hex')
   }
 
   async getAllDonations(): Promise<Donation[]> {
-    await this.ensureInitialized()
     try {
-      const donations = await this.donationsStore.get('donations.json', { type: 'json' }) as Donation[]
-      return donations || []
+      const { data, error } = await supabase
+        .from('donations')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching donations:', error)
+        return []
+      }
+
+      // Map database fields to interface
+      return (data || []).map(row => ({
+        id: row.id,
+        timestamp: row.timestamp,
+        name: row.name,
+        email: row.email,
+        amount: row.amount,
+        currency: row.currency,
+        paymentMethod: row.payment_method,
+        location: row.location,
+        referenceId: row.reference_id,
+        message: row.message,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
     } catch (error) {
-      console.error('Error getting donations:', error)
+      console.error('Database error:', error)
       return []
     }
   }
 
   async getDonationById(id: string): Promise<Donation | null> {
-    const donations = await this.getAllDonations()
-    return donations.find(d => d.id === id) || null
+    try {
+      const { data, error } = await supabase
+        .from('donations')
+        .select('*')
+        .eq('id', id)
+        .single()
+
+      if (error || !data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        timestamp: data.timestamp,
+        name: data.name,
+        email: data.email,
+        amount: data.amount,
+        currency: data.currency,
+        paymentMethod: data.payment_method,
+        location: data.location,
+        referenceId: data.reference_id,
+        message: data.message,
+        status: data.status,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.error('Error fetching donation:', error)
+      return null
+    }
   }
 
   async createDonation(donation: Omit<Donation, 'id' | 'createdAt' | 'updatedAt'>): Promise<Donation> {
-    await this.ensureInitialized()
-    const donations = await this.getAllDonations()
-    
-    const newDonation: Donation = {
-      ...donation,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    try {
+      const { data, error } = await supabase
+        .from('donations')
+        .insert({
+          timestamp: donation.timestamp,
+          name: donation.name,
+          email: donation.email,
+          amount: donation.amount,
+          currency: donation.currency,
+          payment_method: donation.paymentMethod,
+          location: donation.location,
+          reference_id: donation.referenceId,
+          message: donation.message,
+          status: donation.status
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating donation:', error)
+        throw new Error('Failed to create donation')
+      }
+
+      console.log('✅ Donation saved to Supabase:', data.id)
+
+      return {
+        id: data.id,
+        timestamp: data.timestamp,
+        name: data.name,
+        email: data.email,
+        amount: data.amount,
+        currency: data.currency,
+        paymentMethod: data.payment_method,
+        location: data.location,
+        referenceId: data.reference_id,
+        message: data.message,
+        status: data.status,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.error('Database error creating donation:', error)
+      throw error
     }
-    
-    donations.push(newDonation)
-    await this.donationsStore.set('donations.json', donations)
-    
-    console.log('✅ Donation saved to Netlify Blobs:', newDonation.id)
-    return newDonation
   }
 
   async updateDonation(id: string, updates: Partial<Donation>): Promise<Donation | null> {
-    const donations = await this.getAllDonations()
-    const index = donations.findIndex(d => d.id === id)
-    
-    if (index === -1) return null
-    
-    donations[index] = {
-      ...donations[index],
-      ...updates,
-      id: donations[index].id,
-      createdAt: donations[index].createdAt,
-      updatedAt: new Date().toISOString()
+    try {
+      const updateData: any = {}
+      
+      if (updates.name) updateData.name = updates.name
+      if (updates.email) updateData.email = updates.email
+      if (updates.amount) updateData.amount = updates.amount
+      if (updates.currency) updateData.currency = updates.currency
+      if (updates.paymentMethod) updateData.payment_method = updates.paymentMethod
+      if (updates.location) updateData.location = updates.location
+      if (updates.referenceId) updateData.reference_id = updates.referenceId
+      if (updates.message) updateData.message = updates.message
+      if (updates.status) updateData.status = updates.status
+
+      const { data, error } = await supabase
+        .from('donations')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error || !data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        timestamp: data.timestamp,
+        name: data.name,
+        email: data.email,
+        amount: data.amount,
+        currency: data.currency,
+        paymentMethod: data.payment_method,
+        location: data.location,
+        referenceId: data.reference_id,
+        message: data.message,
+        status: data.status,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at
+      }
+    } catch (error) {
+      console.error('Error updating donation:', error)
+      return null
     }
-    
-    await this.donationsStore.set('donations.json', donations)
-    return donations[index]
   }
 
   async deleteDonation(id: string): Promise<boolean> {
-    const donations = await this.getAllDonations()
-    const filtered = donations.filter(d => d.id !== id)
-    
-    if (filtered.length === donations.length) return false
-    
-    await this.donationsStore.set('donations.json', filtered)
-    return true
+    try {
+      const { error } = await supabase
+        .from('donations')
+        .delete()
+        .eq('id', id)
+
+      return !error
+    } catch (error) {
+      console.error('Error deleting donation:', error)
+      return false
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    await this.ensureInitialized()
     try {
-      const users = await this.usersStore.get('users.json', { type: 'json' }) as User[]
-      return users?.find((u: User) => u.username === username) || null
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single()
+
+      if (error || !data) {
+        return null
+      }
+
+      return {
+        id: data.id,
+        username: data.username,
+        passwordHash: data.password_hash,
+        role: data.role,
+        createdAt: data.created_at
+      }
     } catch (error) {
-      console.error('Error getting user:', error)
+      console.error('Error fetching user:', error)
       return null
     }
   }
@@ -160,17 +240,13 @@ class Database {
   }
 
   async updateUserPassword(username: string, newPassword: string): Promise<boolean> {
-    await this.ensureInitialized()
     try {
-      const users = await this.usersStore.get('users.json', { type: 'json' }) as User[]
-      if (!users) return false
-      
-      const index = users.findIndex((u: User) => u.username === username)
-      if (index === -1) return false
-      
-      users[index].passwordHash = this.hashPassword(newPassword)
-      await this.usersStore.set('users.json', users)
-      return true
+      const { error } = await supabase
+        .from('users')
+        .update({ password_hash: this.hashPassword(newPassword) })
+        .eq('username', username)
+
+      return !error
     } catch (error) {
       console.error('Error updating user password:', error)
       return false

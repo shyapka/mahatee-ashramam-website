@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@netlify/blobs": "^8.1.0",
+    "@supabase/supabase-js": "^2.45.4",
     "framer-motion": "^12.23.6",
     "lucide-react": "^0.525.0",
     "next": "14.0.4",
