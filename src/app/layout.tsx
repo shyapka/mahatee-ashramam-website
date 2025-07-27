@@ -39,20 +39,6 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
-        
-        {/* Hidden Netlify form for donation confirmations */}
-        <form name="donation-confirmations" data-netlify="true" style={{display: 'none'}}>
-          <input type="text" name="timestamp" />
-          <input type="text" name="name" />
-          <input type="email" name="email" />
-          <input type="text" name="amount" />
-          <input type="text" name="currency" />
-          <input type="text" name="payment_method" />
-          <input type="text" name="location" />
-          <input type="text" name="reference_id" />
-          <textarea name="message"></textarea>
-          <input type="text" name="status" />
-        </form>
       </body>
     </html>
   )
