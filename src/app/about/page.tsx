@@ -176,15 +176,22 @@ export default function AboutPage() {
               viewport={{ once: true }}
               className="text-center"
             >
-              <div className="w-32 h-32 bg-primary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Users className="h-16 w-16 text-primary-500" />
+              <div className="w-32 h-32 mx-auto mb-4 overflow-hidden rounded-full">
+                <img 
+                  src="/images/team/bhogaraju-nirmala.jpg" 
+                  alt="Bhogaraju Nirmala"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Founder & Director
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                Bhogaraju Nirmala
               </h3>
-              <p className="text-gray-600 mb-4">
-                Visionary leader who started this noble mission with a dream to 
-                transform children's lives through love and education.
+              <p className="text-lg text-primary-600 font-medium mb-3">
+                President
+              </p>
+              <p className="text-gray-600">
+                Leading our mission with compassion and dedication to transform 
+                children's lives through love and education.
               </p>
             </motion.div>
 
@@ -195,15 +202,22 @@ export default function AboutPage() {
               viewport={{ once: true }}
               className="text-center"
             >
-              <div className="w-32 h-32 bg-secondary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Book className="h-16 w-16 text-secondary-500" />
+              <div className="w-32 h-32 mx-auto mb-4 overflow-hidden rounded-full">
+                <img 
+                  src="/images/team/amarawaji-naresh-kumar.jpg" 
+                  alt="Amarawaji Naresh Kumar"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Education Coordinator
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                Amarawaji Naresh Kumar
               </h3>
-              <p className="text-gray-600 mb-4">
-                Dedicated educator ensuring every child receives quality education 
-                and academic support tailored to their needs.
+              <p className="text-lg text-secondary-600 font-medium mb-3">
+                General Secretary
+              </p>
+              <p className="text-gray-600">
+                Ensuring smooth operations and coordinating all activities 
+                for the welfare of our children.
               </p>
             </motion.div>
 
@@ -214,15 +228,66 @@ export default function AboutPage() {
               viewport={{ once: true }}
               className="text-center"
             >
-              <div className="w-32 h-32 bg-primary-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Handshake className="h-16 w-16 text-primary-500" />
+              <div className="w-32 h-32 mx-auto mb-4 overflow-hidden rounded-full bg-green-100 flex items-center justify-center">
+                <Shield className="h-16 w-16 text-green-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Community Outreach
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                Amarawaji Swaroopa
               </h3>
-              <p className="text-gray-600 mb-4">
-                Building bridges with the community and creating partnerships 
-                that benefit our children's development.
+              <p className="text-lg text-green-600 font-medium mb-3">
+                Treasurer
+              </p>
+              <p className="text-gray-600">
+                Managing resources with transparency and ensuring every 
+                donation reaches the children who need it most.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Global Champions Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Our Global Champions
+            </h2>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Dedicated volunteers and supporters from around the world who help us expand our reach and impact
+            </p>
+          </motion.div>
+
+          <div className="flex justify-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              viewport={{ once: true }}
+              className="text-center max-w-sm"
+            >
+              <div className="w-32 h-32 mx-auto mb-4 overflow-hidden rounded-full">
+                <img 
+                  src="/images/team/kasyap-vissapragada.jpeg" 
+                  alt="Kasyap Vissapragada"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                Kasyap Vissapragada
+              </h3>
+              <p className="text-lg text-blue-600 font-medium mb-3">
+                Digital Outreach & Strategic Growth
+              </p>
+              <p className="text-gray-600">
+                Expanding our reach through technology and strategic 
+                partnerships to serve more children in need.
               </p>
             </motion.div>
           </div>

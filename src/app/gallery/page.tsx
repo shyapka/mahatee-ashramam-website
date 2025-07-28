@@ -1,106 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { GALLERY_IMAGES, GALLERY_CATEGORIES } from '@/config/gallery'
 
 export default function GalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
-  const categories = [
-    { id: 'all', name: 'All Photos' },
-    { id: 'school', name: 'School Life' },
-    { id: 'daily', name: 'Daily Routine' },
-    { id: 'celebrations', name: 'Celebrations' },
-    { id: 'volunteers', name: 'Volunteer Visits' }
-  ]
-
-  // Real gallery data with uploaded photos
-  const galleryItems = [
-    {
-      id: 1,
-      title: 'School Life Activities',
-      category: 'school',
-      image: '/images/gallery/school-life/30253cec-4c3f-40ce-a773-5e64771f446c.jpeg',
-      description: 'Children engaged in their educational activities and learning experiences'
-    },
-    {
-      id: 2,
-      title: 'Daily Routine',
-      category: 'daily',
-      image: '/images/gallery/daily-routine/086870b8-eaeb-4464-b54e-6a7544c4d166.jpeg',
-      description: 'Glimpse of the children\'s daily life and activities at Mahatee Ashramam'
-    },
-    {
-      id: 3,
-      title: 'Special Celebrations',
-      category: 'celebrations',
-      image: '/images/gallery/celebrations/95d7342f-58b3-4a73-86d6-f7f83140b732.jpeg',
-      description: 'Joyful moments from special occasions and festivals at the ashram'
-    },
-    {
-      id: 4,
-      title: 'Festival Moments',
-      category: 'celebrations',
-      image: '/images/gallery/celebrations/99fdd85a-7ad5-4488-b821-655417e31550.jpeg',
-      description: 'Beautiful moments captured during festive celebrations with the children'
-    },
-    {
-      id: 5,
-      title: 'Volunteer Teaching Session',
-      category: 'volunteers',
-      image: '/images/gallery/volunteer-teaching.jpg',
-      description: 'Dedicated volunteers conducting educational sessions with children'
-    },
-    {
-      id: 6,
-      title: 'Diwali Celebrations',
-      category: 'celebrations',
-      image: '/images/gallery/diwali.jpg',
-      description: 'Festival of lights celebrated with decorations and traditional sweets'
-    },
-    {
-      id: 7,
-      title: 'Study Time',
-      category: 'school',
-      image: '/images/gallery/study-time.jpg',
-      description: 'Focused study sessions with children working on their homework'
-    },
-    {
-      id: 8,
-      title: 'Sports Day',
-      category: 'celebrations',
-      image: '/images/gallery/sports-day.jpg',
-      description: 'Annual sports day with various competitions and prizes'
-    },
-    {
-      id: 9,
-      title: 'Music Class',
-      category: 'daily',
-      image: '/images/gallery/music-class.jpg',
-      description: 'Children learning traditional music and singing devotional songs'
-    },
-    {
-      id: 10,
-      title: 'Corporate Volunteer Visit',
-      category: 'volunteers',
-      image: '/images/gallery/corporate-visit.jpg',
-      description: 'Corporate volunteers spending quality time with children'
-    },
-    {
-      id: 11,
-      title: 'Science Project',
-      category: 'school',
-      image: '/images/gallery/science-project.jpg',
-      description: 'Hands-on science experiments making learning fun and interactive'
-    },
-    {
-      id: 12,
-      title: 'Garden Time',
-      category: 'daily',
-      image: '/images/gallery/garden-time.jpg',
-      description: 'Children learning about plants and nature in our organic garden'
-    }
-  ]
+  const categories = GALLERY_CATEGORIES
+  const galleryItems = GALLERY_IMAGES
 
   const filteredItems = selectedCategory === 'all' 
     ? galleryItems 

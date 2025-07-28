@@ -45,8 +45,7 @@ export default function ContactPage() {
       icon: '📞',
       title: 'Phone',
       details: [
-        '+91 XXXXX XXXXX',
-        '+91 XXXXX XXXXX'
+        '+91 9059261176'
       ]
     },
     {
@@ -180,7 +179,7 @@ export default function ContactPage() {
                       value={formData.phone}
                       onChange={(e) => setFormData({...formData, phone: e.target.value})}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                      placeholder="+91 XXXXX XXXXX"
+                      placeholder="+91 9059261176"
                     />
                   </div>
                   <div>
@@ -350,7 +349,7 @@ export default function ContactPage() {
             </p>
             <div className="space-y-3">
               <div className="text-xl font-semibold text-red-600">
-                Emergency Hotline: +91 XXXXX XXXXX
+                Emergency Hotline: +91 9059261176
               </div>
               <div className="text-gray-600">
                 Available 24/7 for emergencies
