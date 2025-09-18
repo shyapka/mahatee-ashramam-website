@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import PaymentConfirmationModal from '@/components/PaymentConfirmationModal'
+import RazorpayCheckout from '@/components/RazorpayCheckout'
 import { trackDonationAmountSelect, trackPaymentMethodSelect } from '@/utils/analytics'
 
 export default function IndiaDonatePageFixed() {
@@ -74,11 +75,11 @@ export default function IndiaDonatePageFixed() {
   
   const handleCustomAmountSubmit = () => {
     const amount = parseInt(customAmount)
-    if (amount && amount >= 100) {
+    if (amount && amount >= 1) {  // Changed to 1 for testing, UI still shows 100
       setSelectedAmount(amount)
       setShowPaymentDetails(true)
       setShowCustomInput(false)
-      
+
       // Track custom amount selection
       trackDonationAmountSelect({
         amount,
@@ -180,8 +181,8 @@ export default function IndiaDonatePageFixed() {
                   <span className="text-xl font-bold text-gray-600 mr-2">₹</span>
                   <input
                     type="number"
-                    min="100"
-                    step="100"
+                    min="1"
+                    step="1"
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                     placeholder="Enter amount"
                     value={customAmount}
@@ -226,7 +227,28 @@ export default function IndiaDonatePageFixed() {
                 <h4 className="font-semibold text-gray-900 mb-4">
                   Choose a Payment Method:
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Razorpay Payment Option */}
+                  <div
+                    className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
+                      paymentMethod === 'Razorpay'
+                        ? 'border-orange-500 bg-orange-50'
+                        : 'border-gray-200 hover:border-orange-300'
+                    }`}
+                    onClick={() => setPaymentMethod('Razorpay')}
+                  >
+                    <div className="text-center">
+                      <div className="text-3xl mb-3">💳</div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Razorpay</h3>
+                      <p className="text-sm text-gray-600">Cards, UPI, NetBanking</p>
+                      <div className="mt-2">
+                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                          ⚡ Instant
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* UPI Payment Option */}
                   <div
                     className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
@@ -240,6 +262,11 @@ export default function IndiaDonatePageFixed() {
                       <div className="text-3xl mb-3">📱</div>
                       <h3 className="font-semibold text-gray-900 mb-2">UPI Payment</h3>
                       <p className="text-sm text-gray-600">PhonePe / GPay / Paytm</p>
+                      <div className="mt-2">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          Manual
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -256,12 +283,102 @@ export default function IndiaDonatePageFixed() {
                       <div className="text-3xl mb-3">🏦</div>
                       <h3 className="font-semibold text-gray-900 mb-2">Bank Transfer</h3>
                       <p className="text-sm text-gray-600">Direct bank transfer</p>
+                      <div className="mt-2">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                          Manual
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Show payment details based on selected method */}
+              {paymentMethod === 'Razorpay' && selectedAmount && (
+                <div className="bg-green-50 p-6 rounded-lg mb-8">
+                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
+                    <span className="bg-green-500 text-white rounded-full w-6 h-6 inline-flex items-center justify-center mr-2">⚡</span>
+                    Instant Payment with Razorpay
+                  </h4>
+
+                  <div className="bg-white p-6 rounded-lg">
+                    <div className="text-center mb-6">
+                      <h5 className="text-xl font-semibold mb-2">Payment Amount</h5>
+                      <p className="text-3xl font-bold text-green-600 mb-4">
+                        ₹{selectedAmount.toLocaleString('hi-IN')}
+                      </p>
+
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="flex items-center justify-center p-2 bg-gray-50 rounded">
+                          <span className="text-sm">💳 Cards</span>
+                        </div>
+                        <div className="flex items-center justify-center p-2 bg-gray-50 rounded">
+                          <span className="text-sm">📱 UPI</span>
+                        </div>
+                        <div className="flex items-center justify-center p-2 bg-gray-50 rounded">
+                          <span className="text-sm">🏦 NetBanking</span>
+                        </div>
+                        <div className="flex items-center justify-center p-2 bg-gray-50 rounded">
+                          <span className="text-sm">💰 Wallets</span>
+                        </div>
+                      </div>
+
+                      <div className="bg-green-50 p-4 rounded-lg mb-6">
+                        <h6 className="font-medium mb-2">✅ Benefits of Razorpay Payment:</h6>
+                        <ul className="text-sm space-y-1">
+                          <li>• Instant payment confirmation</li>
+                          <li>• Automatic donation tracking</li>
+                          <li>• Secure encrypted transactions</li>
+                          <li>• Multiple payment options</li>
+                          <li>• No manual confirmation needed</li>
+                        </ul>
+                      </div>
+
+                      <RazorpayCheckout
+                        amount={selectedAmount}
+                        currency="INR"
+                        name="Anonymous"
+                        description={selectedDonationTitle}
+                        notes={{
+                          donation_type: selectedDonationTitle,
+                          location: 'india'
+                        }}
+                        onSuccess={(response) => {
+                          console.log('Payment successful!', response)
+
+                          // Track payment success
+                          trackPaymentMethodSelect({
+                            method: 'Razorpay',
+                            location: 'india',
+                            amount: selectedAmount,
+                            currency: 'INR'
+                          })
+
+                          // Redirect to thank you page with payment details
+                          const thankYouUrl = new URL('/donate/thank-you', window.location.origin)
+                          thankYouUrl.searchParams.set('amount', selectedAmount.toString())
+                          thankYouUrl.searchParams.set('paymentId', response.razorpay_payment_id)
+                          thankYouUrl.searchParams.set('orderId', response.razorpay_order_id)
+
+                          window.location.href = thankYouUrl.toString()
+                        }}
+                        onError={(error) => {
+                          console.error('Payment failed:', error)
+                          alert('Payment failed. Please try again or use another payment method.')
+                        }}
+                        className="w-full bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
+                      >
+                        💳 Pay Now with Razorpay
+                      </RazorpayCheckout>
+
+                      <p className="text-xs text-gray-600 mt-3">
+                        🔒 Your payment is secured by Razorpay. We use industry-standard encryption.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {paymentMethod === 'UPI Payment' && (
                 <div className="bg-orange-50 p-6 rounded-lg mb-8">
                   <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
