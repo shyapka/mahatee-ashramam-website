@@ -109,12 +109,14 @@ export async function POST(request: NextRequest) {
       // )
     }
 
-    // Validate signature
-    const isValid = validateWebhookSignature(body, signature, webhookSecret)
+    // Validate signature (only if secret is configured)
+    const isValid = webhookSecret
+      ? validateWebhookSignature(body, signature, webhookSecret)
+      : false
 
     // TODO: Enable signature validation in production
     // For testing without secret, we'll log but not block
-    if (!isValid && webhookSecret !== 'test_webhook_secret') {
+    if (!isValid && webhookSecret && webhookSecret !== 'test_webhook_secret') {
       console.warn('⚠️ Invalid webhook signature - ensure RAZORPAY_WEBHOOK_SECRET is set correctly')
       // In production, uncomment the return below:
       // return NextResponse.json(
