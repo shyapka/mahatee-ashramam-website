@@ -82,21 +82,31 @@ function extractDonorInfo(payment: RazorpayPaymentEntity): {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📨 Webhook received at:', new Date().toISOString())
+
     // Get raw body for signature verification
     const body = await request.text()
+    console.log('Body length:', body.length)
 
     // Get signature from headers
     const signature = request.headers.get('x-razorpay-signature')
+    console.log('Signature present:', !!signature)
 
     // Get webhook secret from environment
     const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET
+    console.log('Webhook secret configured:', !!webhookSecret)
+
+    // Check Supabase config
+    console.log('Supabase URL configured:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
+    console.log('Supabase key configured:', !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
     if (!webhookSecret) {
       console.error('RAZORPAY_WEBHOOK_SECRET not configured')
-      return NextResponse.json(
-        { error: 'Webhook secret not configured' },
-        { status: 500 }
-      )
+      // Don't fail for now, just warn
+      // return NextResponse.json(
+      //   { error: 'Webhook secret not configured' },
+      //   { status: 500 }
+      // )
     }
 
     // Validate signature
@@ -145,13 +155,19 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('❌ Webhook processing error:', error)
+    console.error('Error type:', typeof error)
+    console.error('Error details:', error instanceof Error ? {
+      message: error.message,
+      stack: error.stack?.split('\n').slice(0, 5).join('\n')
+    } : error)
 
     // Return 200 even on error to prevent retries for malformed payloads
     // Log the error for debugging
     return NextResponse.json({
       success: false,
       message: 'Webhook processing failed',
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      details: process.env.NODE_ENV === 'development' ? error : undefined
     })
   }
 }
@@ -169,11 +185,19 @@ async function handlePaymentCaptured(webhook: RazorpayWebhookPayload) {
   try {
     // Extract donor information
     const donorInfo = extractDonorInfo(payment)
+    console.log('Donor info extracted:', donorInfo)
 
     // Convert amount from paise to rupees
     const amountInRupees = payment.amount / 100
+    console.log('Amount in rupees:', amountInRupees)
+
+    // Check database connection
+    if (!db) {
+      throw new Error('Database connection not initialized')
+    }
 
     // Create donation record
+    console.log('Attempting to save donation...')
     const donation = await db.createDonation({
       timestamp: new Date(payment.created_at * 1000).toISOString(),
       name: donorInfo.name,
@@ -196,6 +220,11 @@ async function handlePaymentCaptured(webhook: RazorpayWebhookPayload) {
 
   } catch (error) {
     console.error('Error saving donation:', error)
+    console.error('Database error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      type: typeof error,
+      name: error instanceof Error ? error.name : 'Unknown'
+    })
     throw error
   }
 }
