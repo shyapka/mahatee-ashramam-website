@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Utensils, Home, GraduationCap, Palette, Heart, Clock, Users, Award } from 'lucide-react'
+import Link from 'next/link'
 
 export default function ProgramsPage() {
   const programs = [
@@ -52,6 +53,19 @@ export default function ProgramsPage() {
         'Spoken English and communication skills'
       ],
       color: 'secondary'
+    },
+    {
+      icon: Heart,
+      title: 'Goshala (Cow Shelter)',
+      description: 'Shelter and food for cows with ongoing campaign to build proper cow shed facilities.',
+      features: [
+        'Daily cow care and feeding',
+        'Medical care for cattle',
+        'Cow shed construction project',
+        'Sustainable farming practices'
+      ],
+      color: 'primary',
+      campaignLink: '/campaigns/goshala'
     }
   ]
 
@@ -147,7 +161,7 @@ export default function ProgramsPage() {
                   <p className="text-lg text-gray-600 mb-6">
                     {program.description}
                   </p>
-                  <ul className="space-y-3">
+                  <ul className="space-y-3 mb-6">
                     {program.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center space-x-3">
                         <div className={`w-2 h-2 rounded-full bg-${program.color}-500`}></div>
@@ -155,6 +169,14 @@ export default function ProgramsPage() {
                       </li>
                     ))}
                   </ul>
+                  {program.campaignLink && (
+                    <Link
+                      href={program.campaignLink}
+                      className={`inline-flex items-center px-6 py-3 bg-${program.color}-500 text-white font-semibold rounded-lg hover:bg-${program.color}-600 transition-colors`}
+                    >
+                      🐄 Support Our Goshala Campaign
+                    </Link>
+                  )}
                 </div>
                 <div className={`bg-white p-8 rounded-lg shadow-lg ${index % 2 === 1 ? 'lg:col-start-1' : ''}`}>
                   <div className="aspect-video bg-gray-200 rounded-lg flex items-center justify-center">

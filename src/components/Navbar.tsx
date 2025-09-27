@@ -11,6 +11,7 @@ export default function Navbar() {
     { href: '/', label: 'Home' },
     { href: '/about', label: 'About Us' },
     { href: '/programs', label: 'Programs' },
+    { href: '/campaigns/goshala', label: 'Goshala Campaign' },
     { href: '/get-involved', label: 'Get Involved' },
     { href: '/gallery', label: 'Gallery' },
     { href: '/contact', label: 'Contact' },

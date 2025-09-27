@@ -8,6 +8,9 @@ function ThankYouContent() {
   const amount = searchParams.get('amount')
   const orderId = searchParams.get('orderId')
   const paymentId = searchParams.get('paymentId')
+  const donorName = searchParams.get('name')
+  const donorPhone = searchParams.get('phone')
+  const donorEmail = searchParams.get('email')
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 py-12">
@@ -24,7 +27,7 @@ function ThankYouContent() {
 
           {/* Main Thank You Message */}
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Thank You!
+            Thank You{donorName && donorName !== 'Anonymous' ? `, ${donorName}` : ''}!
           </h1>
 
           <p className="text-xl text-gray-600 mb-8">
@@ -63,6 +66,32 @@ function ThankYouContent() {
               </div>
             </div>
           )}
+
+          {/* Receipt & Tax Information */}
+          {donorPhone && (
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-6 mb-8 text-left">
+              <h3 className="text-sm font-medium text-blue-800 mb-2">
+                📱 Receipt Information
+              </h3>
+              <p className="text-sm text-blue-700">
+                A receipt will be sent to <strong>{donorPhone}</strong>
+                {donorEmail && (
+                  <span> and <strong>{donorEmail}</strong></span>
+                )}
+              </p>
+            </div>
+          )}
+
+          {/* Tax Exemption Notice */}
+          <div className="bg-green-50 border-l-4 border-green-500 p-6 mb-8 text-left">
+            <h3 className="text-sm font-medium text-green-800 mb-2">
+              📋 Tax Exemption
+            </h3>
+            <p className="text-sm text-green-700">
+              This donation is eligible for tax exemption under <strong>Section 80G</strong> of the Income Tax Act.
+              Please retain your receipt for tax filing purposes.
+            </p>
+          </div>
 
           {/* Impact Statement */}
           <div className="bg-orange-50 border-l-4 border-orange-500 p-6 mb-8 text-left">

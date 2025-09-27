@@ -15,34 +15,30 @@ export default function IndiaDonatePageFixed() {
   const [customAmount, setCustomAmount] = useState<string>('')
   const [showCustomInput, setShowCustomInput] = useState(false)
   const [showPaymentDetails, setShowPaymentDetails] = useState(false)
+  const [donorName, setDonorName] = useState<string>('')
+  const [donorPhone, setDonorPhone] = useState<string>('')
+  const [donorEmail, setDonorEmail] = useState<string>('')
+  const [showDonorForm, setShowDonorForm] = useState(false)
 
   const donationOptions = [
     {
       id: 1,
-      title: 'Sponsor One Day Meal',
-      amount: 3500,
-      description: 'Provide nutritious meals for all children for one day',
-      icon: '🍽️',
-      impact: 'Feeds 100+ children for a full day'
-    },
-    {
-      id: 2,
-      title: 'Sponsor a Child',
-      amount: 18000,
+      title: 'Support a Child (Annual)',
+      amount: 72000,
       description: 'Support one child\'s complete care for an entire year',
       icon: '👶',
       impact: 'Covers education, food, shelter & healthcare'
     },
     {
-      id: 3,
-      title: 'Monthly Meals',
-      amount: 27000,
-      description: 'Ensure nutritious meals for all children for one month',
-      icon: '🥘',
-      impact: 'Provides 9000+ meals'
+      id: 2,
+      title: 'Support All Children (One Day)',
+      amount: 10000,
+      description: 'Provide complete care for all children for one day',
+      icon: '🏠',
+      impact: 'Feeds and cares for 100+ children for a full day'
     },
     {
-      id: 4,
+      id: 3,
       title: 'Custom Amount',
       amount: 0,
       description: 'Choose your own contribution amount',
@@ -58,12 +54,12 @@ export default function IndiaDonatePageFixed() {
       setSelectedDonationTitle(title)
       return
     }
-    
+
     setSelectedAmount(amount)
     setSelectedDonationTitle(title)
-    setShowPaymentDetails(true)
+    setShowDonorForm(true)
     setShowCustomInput(false)
-    
+
     // Track donation amount selection
     trackDonationAmountSelect({
       amount,
@@ -75,9 +71,10 @@ export default function IndiaDonatePageFixed() {
   
   const handleCustomAmountSubmit = () => {
     const amount = parseInt(customAmount)
-    if (amount && amount >= 1) {  // Changed to 1 for testing, UI still shows 100
+    if (amount && amount >= 100) {
       setSelectedAmount(amount)
-      setShowPaymentDetails(true)
+      setSelectedDonationTitle('Custom Amount')
+      setShowDonorForm(true)
       setShowCustomInput(false)
 
       // Track custom amount selection
@@ -92,7 +89,7 @@ export default function IndiaDonatePageFixed() {
   
   const handlePaymentMethodSelect = (method: string) => {
     setPaymentMethod(method)
-    
+
     if (selectedAmount) {
       // Track payment method selection
       trackPaymentMethodSelect({
@@ -101,7 +98,7 @@ export default function IndiaDonatePageFixed() {
         amount: selectedAmount,
         currency: 'INR'
       })
-      
+
       // Open confirmation modal
       setIsModalOpen(true)
     }
@@ -132,7 +129,7 @@ export default function IndiaDonatePageFixed() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {!showPaymentDetails ? (
+        {!showDonorForm && !showPaymentDetails ? (
           <>
             {/* Donation Options */}
             <div className="text-center mb-12">
@@ -144,7 +141,7 @@ export default function IndiaDonatePageFixed() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
               {donationOptions.map((option) => (
                 <div 
                   key={option.id}
@@ -210,8 +207,100 @@ export default function IndiaDonatePageFixed() {
               </div>
             )}
           </>
+        ) : showDonorForm && !showPaymentDetails ? (
+          /* Donor Information Form */
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <div className="text-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                  Your Information
+                </h2>
+                <p className="text-gray-600">
+                  Selected amount: <span className="font-bold text-orange-600">₹{selectedAmount?.toLocaleString('hi-IN')}</span>
+                </p>
+              </div>
+
+              <form onSubmit={(e) => {
+                e.preventDefault()
+                if (donorPhone) {
+                  setShowPaymentDetails(true)
+                  setShowDonorForm(false)
+                }
+              }} className="space-y-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                    Name (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    value={donorName}
+                    onChange={(e) => setDonorName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={donorPhone}
+                    onChange={(e) => setDonorPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                    required
+                    pattern="[0-9]{10}"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Receipt will be sent to this number</p>
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                    Email (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    value={donorEmail}
+                    onChange={(e) => setDonorEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <span className="font-semibold">📋 Tax Benefit:</span> Your donation is eligible for tax exemption under Section 80G
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowDonorForm(false)
+                      setSelectedAmount(null)
+                    }}
+                    className="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    Continue to Payment
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         ) : (
-          /* Payment Options */
+          /* Razorpay Payment */
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="text-center mb-8">
@@ -219,82 +308,17 @@ export default function IndiaDonatePageFixed() {
                   Complete Your Donation
                 </h2>
                 <p className="text-xl text-gray-600">
-                  Your selected amount: <span className="font-bold text-orange-600">₹{selectedAmount?.toLocaleString('hi-IN')}</span>
+                  Amount: <span className="font-bold text-orange-600">₹{selectedAmount?.toLocaleString('hi-IN')}</span>
                 </p>
+                {donorName && (
+                  <p className="text-lg text-gray-600 mt-2">
+                    Donor: <span className="font-semibold">{donorName}</span>
+                  </p>
+                )}
               </div>
 
-              <div className="bg-blue-50 p-6 rounded-lg mb-8">
-                <h4 className="font-semibold text-gray-900 mb-4">
-                  Choose a Payment Method:
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Razorpay Payment Option */}
-                  <div
-                    className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
-                      paymentMethod === 'Razorpay'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-orange-300'
-                    }`}
-                    onClick={() => setPaymentMethod('Razorpay')}
-                  >
-                    <div className="text-center">
-                      <div className="text-3xl mb-3">💳</div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Razorpay</h3>
-                      <p className="text-sm text-gray-600">Cards, UPI, NetBanking</p>
-                      <div className="mt-2">
-                        <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
-                          ⚡ Instant
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* UPI Payment Option */}
-                  <div
-                    className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
-                      paymentMethod === 'UPI Payment'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-orange-300'
-                    }`}
-                    onClick={() => setPaymentMethod('UPI Payment')}
-                  >
-                    <div className="text-center">
-                      <div className="text-3xl mb-3">📱</div>
-                      <h3 className="font-semibold text-gray-900 mb-2">UPI Payment</h3>
-                      <p className="text-sm text-gray-600">PhonePe / GPay / Paytm</p>
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                          Manual
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Bank Transfer Option */}
-                  <div
-                    className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
-                      paymentMethod === 'Bank Transfer'
-                        ? 'border-orange-500 bg-orange-50'
-                        : 'border-gray-200 hover:border-orange-300'
-                    }`}
-                    onClick={() => setPaymentMethod('Bank Transfer')}
-                  >
-                    <div className="text-center">
-                      <div className="text-3xl mb-3">🏦</div>
-                      <h3 className="font-semibold text-gray-900 mb-2">Bank Transfer</h3>
-                      <p className="text-sm text-gray-600">Direct bank transfer</p>
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                          Manual
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Show payment details based on selected method */}
-              {paymentMethod === 'Razorpay' && selectedAmount && (
+              {/* Razorpay Payment Section */}
+              {selectedAmount && (
                 <div className="bg-green-50 p-6 rounded-lg mb-8">
                   <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
                     <span className="bg-green-500 text-white rounded-full w-6 h-6 inline-flex items-center justify-center mr-2">⚡</span>
@@ -337,7 +361,9 @@ export default function IndiaDonatePageFixed() {
                       <RazorpayCheckout
                         amount={selectedAmount}
                         currency="INR"
-                        name="Anonymous"
+                        name={donorName || "Anonymous"}
+                        email={donorEmail}
+                        contact={donorPhone}
                         description={selectedDonationTitle}
                         notes={{
                           donation_type: selectedDonationTitle,
@@ -354,17 +380,20 @@ export default function IndiaDonatePageFixed() {
                             currency: 'INR'
                           })
 
-                          // Redirect to thank you page with payment details
+                          // Redirect to thank you page with payment details and donor info
                           const thankYouUrl = new URL('/donate/thank-you', window.location.origin)
                           thankYouUrl.searchParams.set('amount', selectedAmount.toString())
                           thankYouUrl.searchParams.set('paymentId', response.razorpay_payment_id)
                           thankYouUrl.searchParams.set('orderId', response.razorpay_order_id)
+                          thankYouUrl.searchParams.set('name', donorName || 'Anonymous')
+                          thankYouUrl.searchParams.set('phone', donorPhone)
+                          if (donorEmail) thankYouUrl.searchParams.set('email', donorEmail)
 
                           window.location.href = thankYouUrl.toString()
                         }}
                         onError={(error) => {
                           console.error('Payment failed:', error)
-                          alert('Payment failed. Please try again or use another payment method.')
+                          alert('Payment failed. Please try again.')
                         }}
                         className="w-full bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors"
                       >
@@ -379,109 +408,15 @@ export default function IndiaDonatePageFixed() {
                 </div>
               )}
 
-              {paymentMethod === 'UPI Payment' && (
-                <div className="bg-orange-50 p-6 rounded-lg mb-8">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="bg-orange-500 text-white rounded-full w-6 h-6 inline-flex items-center justify-center mr-2">✓</span>
-                    UPI Payment Details
-                  </h4>
-                  
-                  <div className="flex flex-col md:flex-row items-center gap-6 bg-white p-6 rounded-lg">
-                    <div className="bg-white border-2 border-gray-200 rounded-lg p-1 w-36 h-36">
-                      <div className="flex items-center justify-center h-full">
-                        <span className="text-gray-400 text-xs text-center">UPI QR Code<br/>Coming Soon</span>
-                      </div>
-                    </div>
-                    <div>
-                      <div className="bg-blue-50 p-4 rounded-lg">
-                        <h5 className="font-semibold mb-2">UPI Details:</h5>
-                        <p className="text-lg font-mono font-semibold text-blue-800">9059261176</p>
-                        <p className="text-sm text-gray-600">Works with PhonePe / GPay / Paytm</p>
-                        <p className="font-medium mt-2">Amount: <span className="font-bold">₹{selectedAmount?.toLocaleString('hi-IN')}</span></p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg my-4">
-                    <h5 className="font-medium mb-2">How to pay with UPI:</h5>
-                    <ol className="list-decimal pl-6 space-y-1 text-sm">
-                      <li>Open your UPI app (PhonePe, GPay, Paytm, etc.)</li>
-                      <li>Enter the UPI ID or mobile number: <strong>9059261176</strong></li>
-                      <li>Enter the amount: <strong>₹{selectedAmount?.toLocaleString('hi-IN')}</strong></li>
-                      <li>Include "Mahatee Donation" in the note/description</li>
-                      <li>After completing payment, click the button below</li>
-                    </ol>
-                  </div>
-
-                  {/* Confirmation Button */}
-                  <div className="text-center mt-4">
-                    <button
-                      onClick={() => handlePaymentMethodSelect('UPI Payment')}
-                      className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center"
-                    >
-                      ✅ I've Made the Payment
-                    </button>
-                    <p className="text-sm text-gray-600 mt-2">Click only after completing your UPI payment</p>
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'Bank Transfer' && (
-                <div className="bg-orange-50 p-6 rounded-lg mb-8">
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center">
-                    <span className="bg-orange-500 text-white rounded-full w-6 h-6 inline-flex items-center justify-center mr-2">✓</span>
-                    Bank Transfer Details
-                  </h4>
-
-                  <div className="bg-white p-6 rounded-lg">
-                    <h5 className="font-semibold text-lg text-gray-900 mb-3">Bank Account Information</h5>
-                    <div className="bg-blue-50 p-4 rounded-lg space-y-2">
-                      <p><strong>Account Name:</strong> Mahatee Ashramam</p>
-                      <p><strong>Account Number:</strong> <span className="font-mono">073711010000022</span></p>
-                      <p><strong>IFSC Code:</strong> <span className="font-mono">UBIN0807371</span></p>
-                      <p><strong>Bank:</strong> Union Bank of India</p>
-                      <p><strong>Branch:</strong> Balkonda Branch</p>
-                      <p><strong>Amount:</strong> ₹{selectedAmount?.toLocaleString('hi-IN')}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-50 p-4 rounded-lg my-4">
-                    <h5 className="font-medium mb-2">How to complete your bank transfer:</h5>
-                    <ol className="list-decimal pl-6 space-y-1 text-sm">
-                      <li>Use your bank's mobile app or website</li>
-                      <li>Make a transfer to the account details shown above</li>
-                      <li>Include "Mahatee Donation" in the description</li>
-                      <li>After completing transfer, click the button below</li>
-                    </ol>
-                  </div>
-
-                  {/* Confirmation Button */}
-                  <div className="text-center mt-4">
-                    <button
-                      onClick={() => handlePaymentMethodSelect('Bank Transfer')}
-                      className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-colors inline-flex items-center"
-                    >
-                      ✅ I've Made the Payment
-                    </button>
-                    <p className="text-sm text-gray-600 mt-2">Click only after completing your bank transfer</p>
-                  </div>
-                </div>
-              )}
-
-
-
-              {!paymentMethod && (
-                <div className="bg-blue-50 p-6 rounded-lg text-center">
-                  <p className="text-lg text-gray-700">👆 Please select a payment method from above to continue</p>
-                </div>
-              )}
-
               <div className="text-center mt-8">
                 <button
-                  onClick={() => setShowPaymentDetails(false)}
+                  onClick={() => {
+                    setShowPaymentDetails(false)
+                    setShowDonorForm(true)
+                  }}
                   className="bg-gray-500 text-white py-2 px-6 rounded-lg hover:bg-gray-600 transition-colors"
                 >
-                  ← Back to Options
+                  ← Back
                 </button>
               </div>
             </div>
